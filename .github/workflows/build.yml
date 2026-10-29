@@ -14,7 +14,7 @@ jobs:
       - name: Publish
         run: |
           $proj = (Get-ChildItem -Recurse -Filter ClipDeck.csproj | Select-Object -First 1).FullName
-          dotnet publish $proj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -o out/standalone
+          dotnet publish $proj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o out/standalone
       - uses: actions/upload-artifact@v4
         with:
           name: ClipDeck-standalone
