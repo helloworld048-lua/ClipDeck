@@ -9,27 +9,40 @@ namespace ClipDeck
     {
         static Mutex mutex;
 
+        static void Fail(string where, Exception ex)
+        {
+            Store.Log(where + ": " + ex);
+            try
+            {
+                MessageBox.Show("ClipDeck: ошибка (" + where + ")\n\n" + ex.Message + "\n\nПодробности: %AppData%\\ClipDeck\\error.log",
+                                "ClipDeck", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            catch { }
+        }
+
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
+            DispatcherUnhandledException += (s, args) => { Fail("UI", args.Exception); args.Handled = true; };
+            AppDomain.CurrentDomain.UnhandledException += (s, args) =>
+                Fail("Fatal", args.ExceptionObject as Exception ?? new Exception("unknown"));
+
             bool created;
             mutex = new Mutex(true, "ClipDeck.SingleInstance.Mutex", out created);
-            if (!created)
+            if (!created) { Shutdown(); return; }
+
+            try
             {
-                Shutdown();
-                return;
+                Store.Load();
+                var w = new MainWindow();
+                MainWindow = w;
+                if (!e.Args.Contains("--hidden")) w.ShowOverlay();
             }
-
-            DispatcherUnhandledException += (s, args) =>
+            catch (Exception ex)
             {
-                Store.Log("Unhandled: " + args.Exception);
-                args.Handled = true;
-            };
-
-            Store.Load();
-            var w = new MainWindow();
-            MainWindow = w;
-            if (!e.Args.Contains("--hidden")) w.ShowOverlay();
+                Fail("start", ex);
+                Shutdown();
+            }
         }
     }
 }
